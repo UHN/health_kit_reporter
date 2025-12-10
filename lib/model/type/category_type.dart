@@ -76,6 +76,9 @@ enum CategoryType {
   irregularMenstrualCycles,
   infrequentMenstrualCycles,
   appleWalkingSteadinessEvent,
+  bleedingAfterPregnancy,
+  bleedingDuringPregnancy,
+  sleepApneaEvent,
 }
 
 extension CategoryTypeIdentifier on CategoryType {
@@ -213,6 +216,12 @@ extension CategoryTypeIdentifier on CategoryType {
         return 'HKCategoryTypeIdentifierInfrequentMenstrualCycles';
       case CategoryType.appleWalkingSteadinessEvent:
         return 'HKCategoryTypeIdentifierAppleWalkingSteadinessEvent';
+      case CategoryType.bleedingAfterPregnancy:
+        return 'HKCategoryTypeIdentifierBleedingAfterPregnancy';
+      case CategoryType.bleedingDuringPregnancy:
+        return 'HKCategoryTypeIdentifierBleedingDuringPregnancy';
+      case CategoryType.sleepApneaEvent:
+        return 'HKCategoryTypeIdentifierSleepApneaEvent';
     }
   }
 }

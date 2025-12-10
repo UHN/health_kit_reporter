@@ -7,6 +7,7 @@
 
 import Foundation
 import HealthKitReporter
+import HealthKit
 
 public final class AnchoredObjectQueryStreamHandler: NSObject {
     public let reporter: HealthKitReporter
@@ -16,7 +17,36 @@ public final class AnchoredObjectQueryStreamHandler: NSObject {
     init(reporter: HealthKitReporter) {
         self.reporter = reporter
     }
+
+    // MARK: - Anchor Encoding/Decoding
+
+    private func encodeQueryAnchor(from anchor: HKQueryAnchor?) -> String? {
+        guard let anchor = anchor else {
+            return nil
+        }
+        do {
+            let data = try NSKeyedArchiver.archivedData(withRootObject: anchor, requiringSecureCoding: true)
+            return data.base64EncodedString()
+        } catch {
+            return nil
+        }
+    }
+
+    private func decodeQueryAnchor(from base64String: String?) -> HKQueryAnchor? {
+        guard let base64String = base64String, !base64String.isEmpty else {
+            return nil
+        }
+        guard let data = Data(base64Encoded: base64String) else {
+            return nil
+        }
+        do {
+            return try NSKeyedUnarchiver.unarchivedObject(ofClass: HKQueryAnchor.self, from: data)
+        } catch {
+            return nil
+        }
+    }
 }
+
 // MARK: - StreamHandlerProtocol
 extension AnchoredObjectQueryStreamHandler: StreamHandlerProtocol {
     public func setQueries(arguments: [String: Any], events: @escaping FlutterEventSink) throws {
@@ -27,6 +57,11 @@ extension AnchoredObjectQueryStreamHandler: StreamHandlerProtocol {
         else {
             return
         }
+
+        // Get optional anchor from arguments
+        let anchorString = arguments["anchor"] as? String
+        let queryAnchor = decodeQueryAnchor(from: anchorString)
+
         let predicate = NSPredicate.samplesPredicate(
             startDate: Date.make(from: startTimestamp),
             endDate: Date.make(from: endTimestamp)
@@ -38,6 +73,7 @@ extension AnchoredObjectQueryStreamHandler: StreamHandlerProtocol {
             let query = try reporter.reader.anchoredObjectQuery(
                 type: type,
                 predicate: predicate,
+                anchor: queryAnchor,
                 monitorUpdates: true
             ) { (query, samples, deletedObjects, anchor, error) in
                 guard error == nil else {
@@ -64,7 +100,12 @@ extension AnchoredObjectQueryStreamHandler: StreamHandlerProtocol {
                 }
                 jsonDictionary["samples"] = samplesArray
                 jsonDictionary["deletedObjects"] = deletedObjectsArray
-                events(jsonDictionary)
+                jsonDictionary["anchor"] = self.encodeQueryAnchor(from: anchor)
+
+                // Dispatch to main thread for Flutter event sink
+                DispatchQueue.main.async {
+                    events(jsonDictionary)
+                }
             }
             plannedQueries.insert(query)
         }
@@ -74,6 +115,7 @@ extension AnchoredObjectQueryStreamHandler: StreamHandlerProtocol {
         AnchoredObjectQueryStreamHandler(reporter: reporter)
     }
 }
+
 // MARK: - FlutterStreamHandler
 extension AnchoredObjectQueryStreamHandler: FlutterStreamHandler {
     public func onListen(
