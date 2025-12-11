@@ -4,7 +4,7 @@ import 'dart:convert';
 
 import 'package:flutter/services.dart';
 
-import 'model/SampleQueryOptions.dart';
+import 'model/sample_query_options.dart';
 import 'model/payload/activity_summary.dart';
 import 'model/payload/category.dart';
 import 'model/payload/characteristic/characteristic.dart';
@@ -165,13 +165,21 @@ class HealthKitReporter {
   /// there were changes regarding to the provided [identifier]
   /// inside [HealthKit].
   /// Provide the [predicate] to set the date interval.
+  /// Optionally provide an [anchor] (base64-encoded string) from a previous query
+  /// to only receive samples added/deleted since that anchor.
+  /// The callback includes the new anchor for subsequent queries.
   ///
   static StreamSubscription<dynamic> anchoredObjectQuery(
       List<String> identifiers, Predicate predicate,
-      {required Function(List<Sample>, List<DeletedObject>) onUpdate}) {
+      {String? anchor,
+      required Function(List<Sample>, List<DeletedObject>, String? anchor)
+          onUpdate}) {
     final arguments = <String, dynamic>{
       'identifiers': identifiers,
     };
+    if (anchor != null) {
+      arguments['anchor'] = anchor;
+    }
     arguments.addAll(predicate.map);
     return _anchoredObjectQueryChannel
         .receiveBroadcastStream(arguments)
@@ -193,7 +201,8 @@ class HealthKitReporter {
         final deletedObject = DeletedObject.fromJson(json);
         deletedObjects.add(deletedObject);
       }
-      onUpdate(samples, deletedObjects);
+      final newAnchor = map['anchor'] as String?;
+      onUpdate(samples, deletedObjects, newAnchor);
     });
   }
 
