@@ -79,6 +79,7 @@ enum CategoryType {
   bleedingAfterPregnancy,
   bleedingDuringPregnancy,
   sleepApneaEvent,
+  hypertensionEvent,
 }
 
 extension CategoryTypeIdentifier on CategoryType {
@@ -222,6 +223,8 @@ extension CategoryTypeIdentifier on CategoryType {
         return 'HKCategoryTypeIdentifierBleedingDuringPregnancy';
       case CategoryType.sleepApneaEvent:
         return 'HKCategoryTypeIdentifierSleepApneaEvent';
+      case CategoryType.hypertensionEvent:
+        return 'HKCategoryTypeIdentifierHypertensionEvent';
     }
   }
 }
