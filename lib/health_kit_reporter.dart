@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 
 import 'model/sample_query_options.dart';
 import 'model/payload/activity_summary.dart';
+import 'model/payload/anchored_query_result.dart';
 import 'model/payload/category.dart';
 import 'model/payload/characteristic/characteristic.dart';
 import 'model/payload/correlation.dart';
@@ -473,6 +474,66 @@ class HealthKitReporter {
       }
     }
     return samples;
+  }
+
+  /// Performs a one-shot anchored object query returning samples,
+  /// deleted objects, and a new anchor for subsequent queries.
+  ///
+  /// Unlike [anchoredObjectQuery] which streams updates, this method
+  /// returns a single snapshot and completes.
+  ///
+  /// The [identifier] specifies the HealthKit type to query.
+  /// Provide the [predicate] to set the date interval.
+  /// Optionally provide an [anchor] (base64-encoded string) from a previous
+  /// query to only receive changes since that anchor. Pass null for initial query.
+  ///
+  /// Returns [AnchoredQueryResult] containing:
+  /// - samples: New or modified samples since the anchor
+  /// - deletedObjects: Objects deleted since the anchor
+  /// - newAnchor: Anchor for subsequent queries
+  ///
+  static Future<AnchoredQueryResult> queryAnchor(
+      String identifier, Predicate predicate,
+      {String? anchor}) async {
+    final arguments = <String, dynamic>{
+      'identifier': identifier,
+    };
+    if (anchor != null) {
+      arguments['anchor'] = anchor;
+    }
+    arguments.addAll(predicate.map);
+
+    final result =
+        await _methodChannel.invokeMethod('queryAnchor', arguments);
+    final map = Map<String, dynamic>.from(result);
+
+    // Parse samples
+    final samplesList = List.from(map['samples'] ?? []);
+    final samples = <Sample>[];
+    for (final String element in samplesList) {
+      final json = jsonDecode(element);
+      final sample = Sample.factory(json);
+      if (sample != null) {
+        samples.add(sample);
+      }
+    }
+
+    // Parse deleted objects
+    final deletedObjectsList = List.from(map['deletedObjects'] ?? []);
+    final deletedObjects = <DeletedObject>[];
+    for (final String element in deletedObjectsList) {
+      final json = jsonDecode(element);
+      final deletedObject = DeletedObject.fromJson(json);
+      deletedObjects.add(deletedObject);
+    }
+
+    final newAnchor = map['anchor'] as String?;
+
+    return AnchoredQueryResult(
+      samples: samples,
+      deletedObjects: deletedObjects,
+      newAnchor: newAnchor,
+    );
   }
 
   /// Returns [Statistics] for the provided [type] and the,

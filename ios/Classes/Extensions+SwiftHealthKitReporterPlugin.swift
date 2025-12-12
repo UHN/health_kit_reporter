@@ -21,6 +21,7 @@ extension SwiftHealthKitReporterPlugin {
         case workoutQuery
         case electrocardiogramQuery
         case sampleQuery
+        case queryAnchor
         case statisticsQuery
         case heartbeatSeriesQuery
         case workoutRouteQuery
@@ -138,6 +139,16 @@ extension SwiftHealthKitReporterPlugin {
                 return
             }
             sampleQuery(
+                reporter: reporter,
+                arguments: arguments,
+                result: result
+            )
+        case .queryAnchor:
+            guard let arguments = call.arguments as? [String: Any] else {
+                throwNoArgumentsError(result: result)
+                return
+            }
+            queryAnchor(
                 reporter: reporter,
                 arguments: arguments,
                 result: result
@@ -691,6 +702,115 @@ extension SwiftHealthKitReporterPlugin {
                     details: error
                 )
             )
+        }
+    }
+    private func queryAnchor(
+        reporter: HealthKitReporter,
+        arguments: [String: Any],
+        result: @escaping FlutterResult
+    ) {
+        guard
+            let identifier = arguments["identifier"] as? String,
+            let startTimestamp = arguments["startTimestamp"] as? Double,
+            let endTimestamp = arguments["endTimestamp"] as? Double
+        else {
+            throwParsingArgumentsError(result: result, arguments: arguments)
+            return
+        }
+        guard let type = identifier.objectType as? SampleType else {
+            result(
+                FlutterError(
+                    code: className,
+                    message: "Error in parsing identifier: \(identifier)",
+                    details: "Invalid identifier for any existing SampleType"
+                )
+            )
+            return
+        }
+
+        let queryAnchor = decodeQueryAnchor(from: arguments["anchor"] as? String)
+        let predicate = NSPredicate.samplesPredicate(
+            startDate: Date.make(from: startTimestamp),
+            endDate: Date.make(from: endTimestamp)
+        )
+
+        do {
+            let query = try reporter.reader.anchoredObjectQuery(
+                type: type,
+                predicate: predicate,
+                anchor: queryAnchor,
+                monitorUpdates: false
+            ) { (_, samples, deletedObjects, anchor, error) in
+                guard error == nil else {
+                    result(
+                        FlutterError(
+                            code: "QueryAnchor",
+                            message: "Error in queryAnchor for identifier: \(identifier)",
+                            details: error.debugDescription
+                        )
+                    )
+                    return
+                }
+
+                var jsonDictionary: [String: Any] = [:]
+
+                var samplesArray: [String] = []
+                for sample in samples {
+                    do {
+                        samplesArray.append(try sample.encoded())
+                    } catch {
+                        continue
+                    }
+                }
+                jsonDictionary["samples"] = samplesArray
+
+                var deletedObjectsArray: [String] = []
+                for deletedObject in deletedObjects {
+                    do {
+                        deletedObjectsArray.append(try deletedObject.encoded())
+                    } catch {
+                        continue
+                    }
+                }
+                jsonDictionary["deletedObjects"] = deletedObjectsArray
+                jsonDictionary["anchor"] = self.encodeQueryAnchor(from: anchor)
+
+                result(jsonDictionary)
+            }
+            reporter.manager.executeQuery(query)
+        } catch {
+            result(
+                FlutterError(
+                    code: className,
+                    message: "Error in queryAnchor initialization",
+                    details: error
+                )
+            )
+        }
+    }
+    // MARK: - Anchor Encoding/Decoding
+    private func encodeQueryAnchor(from anchor: HKQueryAnchor?) -> String? {
+        guard let anchor = anchor else {
+            return nil
+        }
+        do {
+            let data = try NSKeyedArchiver.archivedData(withRootObject: anchor, requiringSecureCoding: true)
+            return data.base64EncodedString()
+        } catch {
+            return nil
+        }
+    }
+    private func decodeQueryAnchor(from base64String: String?) -> HKQueryAnchor? {
+        guard let base64String = base64String, !base64String.isEmpty else {
+            return nil
+        }
+        guard let data = Data(base64Encoded: base64String) else {
+            return nil
+        }
+        do {
+            return try NSKeyedUnarchiver.unarchivedObject(ofClass: HKQueryAnchor.self, from: data)
+        } catch {
+            return nil
         }
     }
     private func statisticsQuery(
