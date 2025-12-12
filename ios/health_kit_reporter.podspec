@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name                  = 'health_kit_reporter'
-  s.version               = '2.3.7'
+  s.version               = '2.3.8'
   s.summary               = 'HealthKitReporter. A wrapper for HealthKit framework. A Flutter plugin'
   s.swift_versions        = '5.3'
   s.description           = 'Helps to write or read data from Apple Health via HealthKit framework using Flutter.'
@@ -20,7 +20,7 @@ Pod::Spec.new do |s|
   s.dependency 'Flutter'
   # Note: HealthKitReporter is sourced from UHN fork. Add this to your app's Podfile:
   # pod 'HealthKitReporter', :git => 'https://github.com/UHN/HealthKitReporter.git', :tag => '3.1.6'
-  s.dependency 'HealthKitReporter', '~> 3.1.6'
+  s.dependency 'HealthKitReporter', '~> 3.1.7'
 
   # Flutter.framework does not contain a i386 slice.
   s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES', 'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386' }
