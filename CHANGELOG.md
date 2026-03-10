@@ -1,3 +1,7 @@
+## [2.3.11] - 10.03.2026
+
+* Version bumps
+
 ## [2.3.1] - 12.12.2024
 
 * Add missing Workout types 
