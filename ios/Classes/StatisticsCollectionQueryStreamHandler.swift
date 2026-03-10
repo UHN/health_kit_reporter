@@ -60,9 +60,14 @@ extension StatisticsCollectionQueryStreamHandler: StreamHandlerProtocol {
                         return
                     }
                     do {
-                        events(try statistics.encoded())
+                        let encoded = try statistics.encoded()
+                        DispatchQueue.main.async {
+                            events(encoded)
+                        }
                     } catch {
-                        events(nil)
+                        DispatchQueue.main.async {
+                            events(nil)
+                        }
                     }
                 }
                 plannedQueries.insert(query)

@@ -53,9 +53,14 @@ extension QueryActivitySummaryStreamHandler: StreamHandlerProtocol {
                 return
             }
             do {
-                events(try activitySummaries.encoded())
+                let encoded = try activitySummaries.encoded()
+                DispatchQueue.main.async {
+                    events(encoded)
+                }
             } catch {
-                events(nil)
+                DispatchQueue.main.async {
+                    events(nil)
+                }
             }
         }
         plannedQueries.insert(query)
