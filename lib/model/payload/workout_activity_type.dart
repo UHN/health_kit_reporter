@@ -618,7 +618,7 @@ extension WorkoutActivityTypeFactory on WorkoutActivityType {
       case 3000:
         return WorkoutActivityType.other;
       default:
-        throw InvalidValueException('Unknown value: $value');
+        return WorkoutActivityType.other;
     }
   }
 }
