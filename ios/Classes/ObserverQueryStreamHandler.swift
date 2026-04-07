@@ -36,7 +36,7 @@ extension ObserverQueryStreamHandler: StreamHandlerProtocol {
         }
         for identifier in identifiers {
             guard let type = identifier.objectType as? SampleType else {
-                return
+                continue
             }
             let query = try reporter.observer.observerQuery(
                 type: type,
