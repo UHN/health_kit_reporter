@@ -1,5 +1,3 @@
-import 'package:health_kit_reporter/exceptions.dart';
-
 /// Equivalent of [HKWorkoutActivityType]
 /// from [HealthKitReporter] https://cocoapods.org/pods/HealthKitReporter
 ///
